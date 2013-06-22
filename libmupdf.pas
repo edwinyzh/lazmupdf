@@ -3,6 +3,10 @@
 // MuPDF lib header port to FPC
 // (c) 2013 by Blestan Tabakov
 //
+// modified by Malcolm Poole
+// to work with muPDF 1.2
+// and link statically on Linux
+//
 (********************************)
 unit libmupdf;
 
@@ -19,7 +23,7 @@ unit libmupdf;
 interface
 
 uses
-  Classes, SysUtils,ctypes;
+  Classes, SysUtils, ctypes;
 
 
 const
@@ -29,23 +33,37 @@ const
   muLibName = 'libmupdf.dylib';
   {$LINKLIB mylib}
 {$ELSEIF Defined(UNIX)}
-  muLibName = 'libmupdf.so';
+  muLibName = 'fitz';
+  {
+   You can link dynamically to libfitz.so.1.0 if you have managed to
+   compile this.
+
+   If you prefer to link statically with the libfitz library,
+   uncomment the following 5 lines and include the path to the
+   libraries in the Project Options
+  }
+  //{$LINKLIB fitz}
+  //{$LINKLIB freetype}
+  //{$LINKLIB openjpeg}
+  //{$LINKLIB jbig2dec}
+  //{$LINKLIB jpeg}
 {$IFEND}
 
 type
 
-    pfz_bbox = ^ fz_bbox;
-    fz_bbox = record
-               x0,y0,x1,y1: cint
+    pfz_irect = ^fz_irect;
+    fz_irect = record
+               x0,y0,x1,y1: cint;
               end;
 
-    pfz_rectangle=^fz_rectangle;
-    fz_rectangle= record
-                   x0,y0,x1,y1: cfloat
-                  end;
+    pfz_rect = ^fz_rect;
+    fz_rect = record
+                   x0,y0,x1,y1: cfloat;
+              end;
 
+    pfz_matrix = ^fz_matrix;
     fz_matrix = record
-                 a,b,c,d,e,f: cfloat
+                 a,b,c,d,e,f: cfloat;
                 end;
 
 
@@ -53,9 +71,18 @@ type
 
 
  fz_context = pointer;
+ pfz_context = ^fz_context;
+
  fz_document = pointer;
- fz_page= pointer;
+ pfz_document = ^fz_document;
+
+ fz_page = pointer;
+ pfz_page = ^fz_page;
+
  fz_device = pointer;
+
+ fz_stream = pointer;
+ pfz_stream = ^fz_stream;
 
 {
     Pixmaps represent a set of pixels for a 2 dimensional region of a
@@ -189,10 +216,10 @@ const
 
 // Fitz COLORSPACE
 
-{    fz_find_device_colorspace: Find a standard colorspace based upon it's name. }
+{    fz_find_device_colorspace: Find a standard colorspace based upon its name. }
 
      function fz_find_device_colorspace(ctx:fz_context; name: pchar):fz_colorspace;cdecl;external muLibName name 'fz_find_device_colorspace';
-{
+
 {    fz_device_gray: Abstract colorspace representing device specific gray.}
 
      function  fz_device_gray:fz_colorspace;cdecl;external muLibName name 'fz_device_gray';
@@ -211,7 +238,7 @@ const
 
      function  fz_device_cmyk:fz_colorspace;cdecl;external muLibName name 'fz_device_cmyk';
 
-}
+
 
 //   Fitz Pixmap
 
@@ -220,7 +247,7 @@ const
       Returns an exact bounding box for the supplied pixmap.
 }
 
-     function fz_pixmap_bbox(ctx:fz_context; pix:fz_pixmap):fz_bbox;cdecl;external muLibName name 'fz_pixmap_bbox';
+     function fz_pixmap_bbox(ctx:fz_context; pix:fz_pixmap):pfz_irect;cdecl;external muLibName name 'fz_pixmap_bbox';
 
 {     fz_pixmap_width: Return the width of the pixmap in pixels. }
 
@@ -260,7 +287,7 @@ const
      Returns a pointer to the new pixmap. Throws exception on failure to allocate.
 }
 
-     function fz_new_pixmap_with_bbox(ctx: fz_context; cs: fz_colorspace; bbox: fz_bbox):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox';
+     function fz_new_pixmap_with_bbox(ctx: fz_context; cs: fz_colorspace; const bbox: pfz_irect):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox';
 
 {
          fz_new_pixmap_with_data: Create a new pixmap, with it's origin at
@@ -301,7 +328,7 @@ const
          allocate.
 }
 
-     function fz_new_pixmap_with_bbox_and_data(ctx: fz_context; cs: fz_colorspace; bbox: fz_bbox; samples: pointer):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox_and_data';
+     function fz_new_pixmap_with_bbox_and_data(ctx: fz_context; cs: fz_colorspace; bbox: pfz_irect; samples: pointer):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox_and_data';
 
 
 {
@@ -402,7 +429,7 @@ const
          The returned bounding box will be the union of all bounding
          boxes of all objects on a page.
      }
-         function  fz_new_bbox_device(ctx: fz_context; bboxp: pfz_bbox):fz_device;cdecl;external muLibName name 'fz_new_bbox_device';
+         function  fz_new_bbox_device(ctx: fz_context; bboxp: pfz_irect):fz_device;cdecl;external muLibName name 'fz_new_bbox_device';
 
      {
          fz_new_draw_device: Create a device to draw on a pixmap.
@@ -429,7 +456,7 @@ const
          draw device.
      }
 
-     function fz_new_draw_device_with_bbox(ctx: fz_context; dest: fz_pixmap; clip: fz_bbox):fz_device;cdecl;external muLibName name 'fz_new_draw_device_with_bbox';
+     function fz_new_draw_device_with_bbox(ctx: fz_context; dest: fz_pixmap; clip: pfz_irect):fz_device;cdecl;external muLibName name 'fz_new_draw_device_with_bbox';
 
 // Fitz DOCUMENT
 
@@ -448,6 +475,18 @@ const
 }
 
       function fz_open_document(ctx: fz_context; const filename: PChar): fz_document;cdecl;external muLibName name 'fz_open_document';
+
+{
+      fz_open_document_with_stream: Open a PDF, XPS or CBZ document.
+
+      Open a document using the specified stream object rather than
+      opening a file on disk.
+
+      magic: a string used to detect document type; either a file name or mime-type.
+}
+
+function fz_open_document_with_stream(ctx: fz_context; const magic: PChar; astream: fz_stream): fz_document; cdecl; external muLibName name 'fz_open_document_with_stream';
+
 
 {
       fz_close_document: Close and free an open document.
@@ -512,10 +551,6 @@ const
 }
     procedure fz_free_page(doc: fz_document; page: fz_page);cdecl;external muLibName name 'fz_free_page';
 
-{   fz_bound_page: Determine the size of a page at 72 dpi. }
-
-    function fz_bound_page(doc: fz_document; page: fz_page):fz_rectangle;cdecl;external muLibName name 'fz_bound_page';
-
 
 {
     fz_run_page: Run a page through a device.
@@ -537,7 +572,7 @@ const
     rendering.
 }
 
-    procedure fz_run_page(doc:fz_document; page: fz_page; dev: fz_device; transform: fz_matrix; cookie: fz_cookie);cdecl;external muLibName name 'fz_run_page';
+    procedure fz_run_page(doc:fz_document; page: fz_page; dev: fz_device; transform: pfz_matrix; cookie: fz_cookie);cdecl;external muLibName name 'fz_run_page';
 
 
 
@@ -559,7 +594,106 @@ const
 	Does not throw exceptions.
 }
 
-function fz_transform_rect(var rect :  fz_rectangle; const transform: fz_matrix): pfz_rectangle;cdecl;external muLibName name 'fz_transform_rect';
+function fz_transform_rect(arect:  pfz_rect; matrix: pfz_matrix): pfz_rect; cdecl;external muLibName name 'fz_transform_rect';
+
+
+{
+        fz_rotate: Create a rotation matrix.
+
+        The returned matrix is of the form
+        [ cos(deg) sin(deg) -sin(deg) cos(deg) 0 0 ].
+
+        m: Pointer to place to store matrix
+
+        degrees: Degrees of counter clockwise rotation. Values less
+        than zero and greater than 360 are handled as expected.
+
+        Returns m.
+
+        Does not throw exceptions.
+}
+
+function fz_rotate(m: pfz_matrix; degrees: cfloat): pfz_matrix; cdecl;external muLibName name 'fz_rotate';
+
+
+{
+        fz_pre_scale: Scale a matrix by premultiplication.
+
+        m: Pointer to the matrix to scale
+
+        sx, sy: Scaling factors along the X- and Y-axes. A scaling
+        factor of 1.0 will not cause any scaling along the relevant
+        axis.
+
+        Returns m (updated).
+
+        Does not throw exceptions.
+}
+
+function fz_pre_scale(m: pfz_matrix; sx, sy: cfloat): pfz_matrix;  cdecl;external muLibName name 'fz_pre_scale';
+
+
+{
+        fz_bound_page: Determine the size of a page at 72 dpi.
+
+        Does not throw exceptions.
+}
+
+function fz_bound_page(d: fz_document; p: fz_page; arect: pfz_rect): pfz_rect; cdecl; external muLibName name 'fz_bound_page';
+
+{
+fz_round_rect: Round rectangle coordinates.
+
+Coordinates in a bounding box are integers, so rounding of the
+rects coordinates takes place. The top left corner is rounded
+upwards and left while the bottom right corner is rounded
+downwards and to the right.
+
+This differs from fz_irect_from_rect, in that fz_irect_from_rect
+slavishly follows the numbers (i.e any slight over/under calculations
+can cause whole extra pixels to be added). fz_round_rect
+allows for a small amount of rounding error when calculating
+the bbox.
+
+Does not throw exceptions.
+}
+
+function fz_round_rect(bbox: pfz_irect; const arect: pfz_rect): pfz_irect;  cdecl; external muLibName name 'fz_round_rect';
+
+{
+fz_write_png: Save a pixmap as a png
+
+filename: The filename to save as (including extension).
+}
+
+procedure fz_write_png(ctx: fz_context; pixmap: fz_pixmap; fn: PChar; savealpha: cint);   cdecl; external muLibName name 'fz_write_png';
+
+{
+        fz_open_memory: Open a block of memory as a stream.
+
+	data: Pointer to start of data block. Ownership of the data block is
+	NOT passed in.
+
+	len: Number of bytes in data block.
+
+	Returns pointer to newly created stream. May throw exceptions on
+	failure to allocate.
+}
+
+function fz_open_memory(ctx: fz_context; data: Pointer; len: cint): fz_stream ;   cdecl; external muLibName name 'fz_open_memory';
+
+{
+        fz_close: Close an open stream.
+
+        Drops a reference for the stream. Once no references remain
+        the stream will be closed, as will any file descriptor the
+        stream is using.
+
+        Does not throw exceptions.
+}
+procedure fz_close(stm: fz_stream); cdecl; external muLibName name 'fz_close';
+
+
 
 
 
