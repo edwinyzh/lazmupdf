@@ -200,11 +200,11 @@ end;
 
 procedure TmuPDFView.ClearPdfContext;
 begin
- if pdfPixmap<>nil then fz_drop_pixmap(pdfContext, pdfPixmap);
- if pdfImage<>nil then pdfImage.Free;
- if pdfPage<>nil then fz_free_page(pdfDoc, pdfPage);
- if pdfDoc<>nil then fz_close_document(pdfDoc);
- if pdfContext<>nil then fz_free_context(pdfContext);
+ if pdfPixmap<>nil then begin fz_drop_pixmap(pdfContext, pdfPixmap); pdfPixmap := nil; end;;
+ if pdfImage<>nil then begin pdfImage.Free; pdfImage := nil; end;;
+ if pdfPage<>nil then begin fz_free_page(pdfDoc, pdfPage); pdfPage := nil; end;
+ if pdfDoc<>nil then begin fz_close_document(pdfDoc); pdfDoc := nil; end;
+ if pdfContext<>nil then begin fz_free_context(pdfContext); pdfContext := nil; end;;
 end;
 
 procedure TmuPDFView.Resize;

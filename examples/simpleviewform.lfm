@@ -1,0 +1,91 @@
+object Form1: TForm1
+  Left = 488
+  Height = 298
+  Top = 400
+  Width = 708
+  Caption = 'muPDF Viewer'
+  ClientHeight = 298
+  ClientWidth = 708
+  LCLVersion = '1.0.1.3'
+  object muPDFView1: TmuPDFView
+    Left = 130
+    Height = 278
+    Top = 10
+    Width = 568
+    HorzScrollBar.Page = 564
+    VertScrollBar.Page = 274
+    VertScrollBar.Tracking = True
+    Align = alClient
+    BorderSpacing.Around = 10
+    TabOrder = 0
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 298
+    Top = 0
+    Width = 120
+    Align = alLeft
+    ClientHeight = 298
+    ClientWidth = 120
+    TabOrder = 1
+    object Button1: TButton
+      Left = 16
+      Height = 25
+      Top = 16
+      Width = 75
+      Caption = 'Load PDF'
+      OnClick = Button1Click
+      TabOrder = 0
+    end
+    object SpinEdit1: TSpinEdit
+      Left = 16
+      Height = 25
+      Top = 82
+      Width = 75
+      MinValue = 1
+      OnChange = PagenumChange
+      TabOrder = 1
+      Value = 1
+    end
+    object ComboBox1: TComboBox
+      Left = 14
+      Height = 27
+      Top = 144
+      Width = 90
+      ItemHeight = 0
+      ItemIndex = 2
+      Items.Strings = (
+        '50'
+        '75'
+        '100'
+        '150'
+        '200'
+      )
+      OnChange = ZoomChange
+      TabOrder = 2
+      Text = '100'
+    end
+    object Label1: TLabel
+      Left = 14
+      Height = 18
+      Top = 64
+      Width = 32
+      Caption = 'Page'
+      ParentColor = False
+    end
+    object Label2: TLabel
+      Left = 16
+      Height = 18
+      Top = 125
+      Width = 40
+      Caption = 'Zoom'
+      ParentColor = False
+    end
+  end
+  object OpenDialog1: TOpenDialog
+    DefaultExt = '.pdf'
+    Filter = 'PDF files|*.pdf|All files|*'
+    left = 104
+    top = 16
+  end
+end
