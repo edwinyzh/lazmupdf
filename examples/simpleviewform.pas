@@ -14,14 +14,17 @@ type
 
   TForm1 = class ( TForm )
     Button1: TButton;
+    Button2: TButton;
     ComboBox1: TComboBox;
     Label1: TLabel;
     Label2: TLabel;
     muPDFView1: TmuPDFView;
     OpenDialog1: TOpenDialog;
     Panel1: TPanel;
+    Panel2: TPanel;
     SpinEdit1: TSpinEdit;
     procedure Button1Click ( Sender: TObject ) ;
+    procedure Button2Click ( Sender: TObject ) ;
     procedure ZoomChange ( Sender: TObject ) ;
     procedure PagenumChange ( Sender: TObject ) ;
   private
@@ -46,6 +49,11 @@ begin
       muPDFView1.LoadFromFile(OpenDialog1.FileName);
       SpinEdit1.MaxValue := muPDFView1.Pagecount;
     end;
+end;
+
+procedure TForm1.Button2Click ( Sender: TObject ) ;
+begin
+  muPDFView1.TestTextFunctions;
 end;
 
 procedure TForm1.ZoomChange ( Sender: TObject ) ;

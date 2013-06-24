@@ -34,19 +34,12 @@ const
   {$LINKLIB mylib}
 {$ELSEIF Defined(UNIX)}
   muLibName = 'fitz';
-  {
-   You can link dynamically to libfitz.so.1.0 if you have managed to
-   compile this.
-
-   If you prefer to link statically with the libfitz library,
-   uncomment the following 5 lines and include the path to the
-   libraries in the Project Options
-  }
-  //{$LINKLIB fitz}
-  //{$LINKLIB freetype}
-  //{$LINKLIB openjpeg}
-  //{$LINKLIB jbig2dec}
-  //{$LINKLIB jpeg}
+  {uncomment the following lines to link statically instead of to a shared library}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libfitz.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libfreetype.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libopenjpeg.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libjbig2dec.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libjpeg.a}
 {$IFEND}
 
 type
@@ -247,7 +240,7 @@ const
       Returns an exact bounding box for the supplied pixmap.
 }
 
-     function fz_pixmap_bbox(ctx:fz_context; pix:fz_pixmap):pfz_irect;cdecl;external muLibName name 'fz_pixmap_bbox';
+     function fz_pixmap_bbox(ctx:fz_context; pix:fz_pixmap):fz_irect;cdecl;external muLibName name 'fz_pixmap_bbox';
 
 {     fz_pixmap_width: Return the width of the pixmap in pixels. }
 
@@ -456,7 +449,7 @@ const
          draw device.
      }
 
-     function fz_new_draw_device_with_bbox(ctx: fz_context; dest: fz_pixmap; clip: pfz_irect):fz_device;cdecl;external muLibName name 'fz_new_draw_device_with_bbox';
+     function fz_new_draw_device_with_bbox(ctx: fz_context; dest: fz_pixmap; clip: fz_irect):fz_device;cdecl;external muLibName name 'fz_new_draw_device_with_bbox';
 
 // Fitz DOCUMENT
 
@@ -692,6 +685,89 @@ function fz_open_memory(ctx: fz_context; data: Pointer; len: cint): fz_stream ; 
         Does not throw exceptions.
 }
 procedure fz_close(stm: fz_stream); cdecl; external muLibName name 'fz_close';
+
+
+{
+	Text extraction device: Used for searching, format conversion etc.
+
+	(In development - Subject to change in future versions)
+}
+
+
+type
+   fz_text_style = Pointer;
+   fz_text_char = PChar;
+   fz_text_span = Pointer;
+   fz_text_line = Pointer;
+   fz_text_block = Pointer;
+
+   fz_text_sheet = Pointer;
+   fz_text_page = Pointer;
+
+   fz_output    = Pointer;
+
+   {
+   	fz_new_text_device: Create a device to extract the text on a page.
+
+   	Gather and sort the text on a page into spans of uniform style,
+   	arranged into lines and blocks by reading order. The reading order
+   	is determined by various heuristics, so may not be accurate.
+
+   	sheet: The text sheet to which styles should be added. This can
+   	either be a newly created (empty) text sheet, or one containing
+   	styles from a previous text device. The same sheet cannot be used
+   	in multiple threads simultaneously.
+
+   	page: The text page to which content should be added. This will
+   	usually be a newly created (empty) text page, but it can be one
+   	containing data already (for example when merging multiple pages, or
+   	watermarking).
+   }
+   function fz_new_text_device(ctx: fz_context; sheet: fz_text_sheet; page: fz_text_page): fz_device; cdecl; external muLibName name 'fz_new_text_device';
+
+   {
+   	fz_new_text_sheet: Create an empty style sheet.
+
+   	The style sheet is filled out by the text device, creating
+   	one style for each unique font, color, size combination that
+   	is used.
+   }
+   function fz_new_text_sheet(ctx: fz_context): fz_text_sheet; cdecl; external muLibName name 'fz_new_text_sheet';
+   procedure fz_free_text_sheet(ctx: fz_context; sheet: fz_text_sheet); cdecl; external muLibName name 'fz_free_text_sheet';
+
+   {
+   	fz_new_text_page: Create an empty text page.
+
+   	The text page is filled out by the text device to contain the blocks,
+   	lines and spans of text on the page.
+   }
+   function fz_new_text_page(ctx: fz_context; const mediabox: pfz_rect): fz_text_page; cdecl; external muLibName name 'fz_new_text_page';
+   procedure fz_free_text_page(ctx: fz_context; page: fz_text_page); cdecl; external muLibName name 'fz_open_memory';
+
+  {
+	fz_search_text_page: Search for occurrence of 'needle' in text page.
+
+	Return the number of hits and store hit bboxes in the passed in array.
+
+	NOTE: This is an experimental interface and subject to change without notice.
+  }
+  function fz_search_text_page(ctx: fz_context; txt: fz_text_page; needle: PChar; hit_bbox: pfz_rect; hit_max: cint): cint; cdecl; external muLibName name 'fz_search_text_page';
+
+  {
+	  fz_highlight_selection: Return a list of rectangles to highlight given a selection rectangle.
+
+	  NOTE: This is an experimental interface and subject to change without notice.
+  }
+  function fz_highlight_selection(ctx: fz_context; page: fz_text_page; arect: fz_rect; hit_bbox: pfz_rect; hit_max: cint): cint; cdecl; external muLibName name 'fz_highlight_selection';
+
+  {
+	  fz_copy_selection: Return a newly allocated UTF-8 string with the text for a given selection rectangle.
+
+	  NOTE: This is an experimental interface and subject to change without notice.
+  }
+  function fz_copy_selection(ctx: fz_context; page: fz_text_page; arect: fz_rect): PChar; cdecl; external muLibName name 'fz_copy_selection';
+
+
 
 
 

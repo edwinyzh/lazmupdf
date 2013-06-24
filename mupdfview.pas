@@ -23,6 +23,8 @@ type
    pdfPage: fz_page;
    pdfImage: TBGRABitmap;
    pdfPixmap: fz_pixmap;
+   fselboxes: array[0..99] of fz_rect;
+   fselcount: Integer;
    procedure SetPagenum ( AValue: Integer ) ;
    procedure SetRotation ( AValue: integer ) ;
    procedure SetZoom ( AValue: integer ) ;
@@ -36,6 +38,7 @@ type
    destructor Destroy; override;
    procedure LoadFromFile(FileName: TFilename);
    procedure LoadFromStream(Stream: TMemoryStream);
+   procedure TestTextFunctions;
    property Zoom: integer read FZoom write SetZoom;
    property Rotation: integer read FRotation write SetRotation;
    property Pagenum: Integer read FPagenum write SetPagenum;
@@ -88,6 +91,9 @@ var
   x: Integer;
   y: Integer;
   shadowcentre: Integer;
+  box: Integer;
+  b: fz_rect;
+  ir: fz_irect;
 begin
   if pdfImage<>nil then
       begin
@@ -118,6 +124,18 @@ begin
                pdfCanvas.Canvas.LineTo(x + shadowcentre + pdfImage.Width, y + pdfImage.Height + shadowcentre);
                pdfCanvas.Canvas.LineTo(x + shadowcentre + pdfImage.Width, y + SHADOW_WIDTH);
              end;
+        if fselcount>0 then
+            for box := 0 to fselcount-1 do
+            begin
+                b := fselboxes[box];
+
+                fz_round_rect(@ir, @b);
+                pdfCanvas.Canvas.Brush.Style := bsClear;
+                pdfCanvas.Canvas.Pen.Width := 2;
+                pdfCanvas.Canvas.Pen.Color := clSkyBlue;
+                pdfCanvas.Canvas.Rectangle(ir.x0 + x, ir.y0 + y, ir.x1 + x, ir.y1 + y);
+
+            end;
       end;
 end;
 
@@ -130,6 +148,7 @@ var
   p1: Pointer;
 begin
   if pdfPage<>nil then fz_free_page(pdfDoc, pdfPage);
+  fselcount := 0;
 
   pdfPage := fz_load_page(pdfDoc, FPagenum - 1);
 
@@ -165,7 +184,7 @@ begin
 
  p1 := pdfImage.Data;
 
- pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceRGB')), @bbox, pdfImage.Data);
+ pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceBGR')), @bbox, pdfImage.Data);
  fz_clear_pixmap_with_value(pdfContext, pdfPixmap, $ff);
 
  pdfCanvas.Width := bbox.x1;
@@ -204,7 +223,8 @@ begin
  if pdfImage<>nil then begin pdfImage.Free; pdfImage := nil; end;;
  if pdfPage<>nil then begin fz_free_page(pdfDoc, pdfPage); pdfPage := nil; end;
  if pdfDoc<>nil then begin fz_close_document(pdfDoc); pdfDoc := nil; end;
- if pdfContext<>nil then begin fz_free_context(pdfContext); pdfContext := nil; end;;
+ if pdfContext<>nil then begin fz_free_context(pdfContext); pdfContext := nil; end;
+ fselcount := 0;
 end;
 
 procedure TmuPDFView.Resize;
@@ -219,6 +239,7 @@ begin
   FZoom := 100;
   FRotation := 0;
   FPagenum := 0;
+  fselcount := 0;
   self.resize;
   pdfCanvas := TPanel.Create(AOwner);
   with pdfCanvas do
@@ -270,4 +291,37 @@ begin
 
 end;
 
+procedure TmuPDFView.TestTextFunctions;
+var
+  sht: fz_text_sheet;
+  bbox: fz_rect;
+  pg: fz_text_page;
+  dev: fz_device;
+  m: fz_matrix;
+  b: fz_rect;
+  ir: fz_irect;
+  selectedtext: string;
+begin
+  bbox.x0 := 0;
+  bbox.y0 := 0;
+  bbox.x1 := pdfImage.Width;
+  bbox.y1 := pdfImage.Height;
+  fz_rotate(@m, rotation);
+  fz_pre_scale(@m, FZoom / 100.0, FZoom / 100.0) ;
+  sht := fz_new_text_sheet(pdfContext);
+  pg := fz_new_text_page(pdfContext, @bbox);
+  dev := fz_new_text_device(pdfContext, sht, pg);
+  fz_run_page(pdfDoc, pdfPage, dev, @m, nil);
+  fselcount := fz_highlight_selection(pdfContext, pg, bbox, @fselboxes, 100);
+  {$IFDEF LINUX}
+  WriteLn('hits: ', fselcount);
+  {$ENDIF}
+  pdfCanvas.Invalidate;
+
+  selectedtext := fz_copy_selection(pdfContext, pg, bbox);
+  // now do something with selectedtext
+end;
+
 end.
+
+
