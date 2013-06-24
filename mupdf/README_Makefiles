@@ -1,6 +1,8 @@
-How to compile libfitz.so.1.0 dynamic library
+Instructions for compiling libfitz.so.1.0 dynamic library
 
 Makefile
 Makerules
 
-Replace the files Makefile and Makerules in the mupdf-1.2-source base directory by the files in this directory.  
+Replace the files Makefile and Makerules in the mupdf-1.2-source base directory by the files in this directory. 
+
+To make only the dynamic library enter 'make so' 
