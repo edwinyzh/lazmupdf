@@ -2,11 +2,17 @@
 <CONFIG>
   <Package Version="4">
     <Name Value="mupdflaz"/>
+    <Author Value="Malcolm Poole"/>
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
+      <Linking>
+        <Debugging>
+          <GenerateDebugInfo Value="False"/>
+        </Debugging>
+      </Linking>
       <Other>
         <CompilerMessages>
           <MsgFileName Value=""/>
@@ -14,6 +20,9 @@
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
+    <Description Value="Provides bindings for working with PDF files using libfitz and a simple viewer component for displaying PDF files"/>
+    <License Value="GPL"/>
+    <Version Major="1"/>
     <Files Count="2">
       <Item1>
         <Filename Value="mupdfview.pas"/>
@@ -26,16 +35,13 @@
       </Item2>
     </Files>
     <Type Value="RunAndDesignTime"/>
-    <RequiredPkgs Count="3">
+    <RequiredPkgs Count="2">
       <Item1>
-        <PackageName Value="BGRABitmapPack"/>
+        <PackageName Value="LCL"/>
       </Item1>
       <Item2>
-        <PackageName Value="LCL"/>
-      </Item2>
-      <Item3>
         <PackageName Value="FCL"/>
-      </Item3>
+      </Item2>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>

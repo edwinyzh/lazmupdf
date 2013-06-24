@@ -1,25 +1,32 @@
 object Form1: TForm1
-  Left = 523
-  Height = 298
-  Top = 389
-  Width = 708
-  Caption = 'muPDF Viewer'
-  ClientHeight = 298
-  ClientWidth = 708
+  Left = 293
+  Height = 618
+  Top = 44
+  Width = 771
+  Caption = 'PDF Viewer'
+  ClientHeight = 618
+  ClientWidth = 771
   LCLVersion = '1.0.1.3'
   object muPDFView1: TmuPDFView
     Left = 130
-    Height = 278
+    Height = 598
     Top = 10
-    Width = 568
-    HorzScrollBar.Page = 564
-    VertScrollBar.Page = 274
+    Width = 631
+    HorzScrollBar.Page = 627
+    VertScrollBar.Page = 594
     VertScrollBar.Tracking = True
     Align = alClient
     BorderSpacing.Around = 10
-    ClientHeight = 274
-    ClientWidth = 564
+    ClientHeight = 594
+    ClientWidth = 627
     TabOrder = 0
+    object TPanel
+      Left = 0
+      Height = 0
+      Top = 0
+      Width = 0
+      TabOrder = 2
+    end
     object TPanel
       Left = 0
       Height = 0
@@ -38,11 +45,11 @@ object Form1: TForm1
   end
   object Panel1: TPanel
     Left = 0
-    Height = 298
+    Height = 618
     Top = 0
     Width = 120
     Align = alLeft
-    ClientHeight = 298
+    ClientHeight = 618
     ClientWidth = 120
     TabOrder = 1
     object Button1: TButton
@@ -86,7 +93,7 @@ object Form1: TForm1
       Left = 14
       Height = 16
       Top = 64
-      Width = 32
+      Width = 33
       Caption = 'Page'
       ParentColor = False
     end

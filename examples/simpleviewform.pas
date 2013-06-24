@@ -48,6 +48,7 @@ begin
     begin
       muPDFView1.LoadFromFile(OpenDialog1.FileName);
       SpinEdit1.MaxValue := muPDFView1.Pagecount;
+      Caption := 'PDF Viewer - ' + ExtractFileName(OpenDialog1.FileName);
     end;
 end;
 

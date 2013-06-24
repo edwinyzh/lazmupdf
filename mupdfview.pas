@@ -5,7 +5,8 @@ unit muPDFView;
 interface
 
 uses
- Classes, SysUtils, Forms, Controls, ExtCtrls, libmupdf, BGRABitmap, Graphics;
+ Classes, SysUtils, Forms, Controls, ExtCtrls, libmupdf,
+ Graphics, IntfGraphics, GraphType;
 
 type
 
@@ -21,7 +22,7 @@ type
    pdfContext: fz_context;
    pdfDoc: fz_document;
    pdfPage: fz_page;
-   pdfImage: TBGRABitmap;
+   pdfImage: TBitmap;
    pdfPixmap: fz_pixmap;
    fselboxes: array[0..99] of fz_rect;
    fselcount: Integer;
@@ -109,7 +110,8 @@ begin
              end;
              y := BORDER_WIDTH;
              pdfCanvas.Height := pdfImage.Height + (BORDER_WIDTH * 2);
-        pdfImage.Draw(pdfCanvas.Canvas, x, y);
+
+       pdfCanvas.Canvas.Draw(x, y, pdfImage);
         with pdfCanvas.Canvas.Pen do
              begin
                Width := 1;
@@ -145,7 +147,8 @@ var
   boundbox: fz_rect;
   bbox: fz_irect;
   dev: fz_device;
-  p1: Pointer;
+  ImgFormatDescription: TRawImageDescription;
+  intimg: TLazIntfImage;
 begin
   if pdfPage<>nil then fz_free_page(pdfDoc, pdfPage);
   fselcount := 0;
@@ -173,46 +176,36 @@ begin
 
  fz_round_rect(@bbox, @boundbox);
 
- if pdfImage<>nil then
+ pdfCanvas.Width := bbox.x1;
+ pdfCanvas.Height := bbox.y1;
+
+if pdfImage<>nil then
      begin
        fz_drop_pixmap(pdfContext, pdfPixmap);
        pdfImage.Free;
        pdfImage := nil;
      end;
 
- pdfImage := TBGRABitmap.Create(bbox.x1, bbox.y1);
+ ImgFormatDescription.Init_BPP32_R8G8B8A8_BIO_TTB(bbox.x1, bbox.y1);
+ intimg := TLazIntfImage.Create(bbox.x1, bbox.y1);
+ intimg.DataDescription := ImgFormatDescription;
+ pdfImage := TBitmap.Create;
+ pdfImage.Width := bbox.x1;
+ pdfImage.Height := bbox.y1;
 
- p1 := pdfImage.Data;
+ pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceRGB')), @bbox, intimg.PixelData);
+ fz_clear_pixmap_with_value(pdfContext, pdfPixmap, 255);
 
- pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceBGR')), @bbox, pdfImage.Data);
- fz_clear_pixmap_with_value(pdfContext, pdfPixmap, $ff);
-
- pdfCanvas.Width := bbox.x1;
- pdfCanvas.Height := bbox.y1;
-
- // A page consists of a series of objects (text, line art, images,
- // gradients). These objects are passed to a device when the
- // interpreter runs the page. There are several devices, used for
- // different purposes:
- //
- //	draw device -- renders objects to a target pixmap.
- //
- //	text device -- extracts the text in reading order with styling
- //	information. This text can be used to provide text search.
- //
- //	list device -- records the graphic objects in a list that can
- //	be played back through another device. This is useful if you
- //	need to run the same page through multiple devices, without
- //	the overhead of parsing the page each time.
-
- // Create a draw device with the pixmap as its target.
+  // Create a draw device with the pixmap as its target.
  // Run the page with the transform.
 
  dev := fz_new_draw_device(pdfContext, pdfPixmap);
  fz_run_page(pdfDoc, pdfPage, dev, @transfm, nil);
  fz_free_device(dev);
 
- pdfImage.InvalidateBitmap;  //note that we have accessed directly to pixels
+ pdfImage.LoadFromIntfImage(intimg);
+ intimg.Free;
+
  paintPDF(nil);
 
 end;
@@ -298,8 +291,6 @@ var
   pg: fz_text_page;
   dev: fz_device;
   m: fz_matrix;
-  b: fz_rect;
-  ir: fz_irect;
   selectedtext: string;
 begin
   bbox.x0 := 0;
