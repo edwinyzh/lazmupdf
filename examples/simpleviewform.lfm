@@ -69,7 +69,7 @@ object Form1: TForm1
       Left = 14
       Height = 16
       Top = 64
-      Width = 33
+      Width = 32
       Caption = 'Page'
       ParentColor = False
     end
@@ -82,9 +82,9 @@ object Form1: TForm1
       ParentColor = False
     end
     object Button2: TButton
-      Left = 24
+      Left = 23
       Height = 25
-      Top = 264
+      Top = 416
       Width = 75
       Caption = 'Highlight'
       OnClick = Button2Click
@@ -111,9 +111,35 @@ object Form1: TForm1
       Left = 14
       Height = 16
       Top = 192
-      Width = 54
+      Width = 53
       Caption = 'Rotation'
       ParentColor = False
+    end
+    object Button3: TButton
+      Left = 18
+      Height = 25
+      Top = 304
+      Width = 80
+      Caption = 'Show'
+      OnClick = ShowMetaTag
+      TabOrder = 5
+    end
+    object MetaTagEdit: TEdit
+      Left = 18
+      Height = 23
+      Top = 277
+      Width = 82
+      TabOrder = 6
+      Text = 'Author'
+    end
+    object Button4: TButton
+      Left = 23
+      Height = 25
+      Top = 362
+      Width = 75
+      Caption = 'Format'
+      OnClick = ShowFormat
+      TabOrder = 7
     end
   end
   object OpenDialog1: TOpenDialog

@@ -15,8 +15,11 @@ type
   TForm1 = class ( TForm )
     Button1: TButton;
     Button2: TButton;
+    Button3: TButton;
+    Button4: TButton;
     ComboBox1: TComboBox;
     ComboBox2: TComboBox;
+    MetaTagEdit: TEdit;
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
@@ -26,7 +29,9 @@ type
     SpinEdit1: TSpinEdit;
     procedure Button1Click ( Sender: TObject ) ;
     procedure Button2Click ( Sender: TObject ) ;
-    procedure RotationChange(Sender: TObject);
+    procedure RotationChange ( Sender: TObject ) ;
+    procedure ShowFormat ( Sender: TObject ) ;
+    procedure ShowMetaTag ( Sender: TObject ) ;
     procedure ZoomChange ( Sender: TObject ) ;
     procedure PagenumChange ( Sender: TObject ) ;
   private
@@ -50,7 +55,7 @@ begin
     begin
       muPDFView1.LoadFromFile(OpenDialog1.FileName);
       SpinEdit1.MaxValue := muPDFView1.Pagecount;
-      Caption := 'PDF Viewer - ' + ExtractFileName(OpenDialog1.FileName);
+      Caption := 'PDF Viewer - ' + muPDFView1.DocumentInfo('Title');
     end;
 end;
 
@@ -59,12 +64,22 @@ begin
   muPDFView1.TestTextFunctions;
 end;
 
-procedure TForm1.RotationChange(Sender: TObject);
+procedure TForm1.RotationChange ( Sender: TObject ) ;
 var
   r: Integer;
 begin
   if TryStrToInt(ComboBox2.Text, r)
      then muPDFView1.Rotation := r;
+end;
+
+procedure TForm1.ShowFormat ( Sender: TObject ) ;
+begin
+  ShowMessage('Format: ' + muPDFView1.Docformat);
+end;
+
+procedure TForm1.ShowMetaTag ( Sender: TObject ) ;
+begin
+  ShowMessage( MetaTagEdit.Text + ': ' + muPDFView1.DocumentInfo(MetaTagEdit.Text) );
 end;
 
 procedure TForm1.ZoomChange ( Sender: TObject ) ;

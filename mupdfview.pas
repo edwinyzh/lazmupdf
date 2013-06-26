@@ -14,11 +14,11 @@ type
 
  TmuPDFView = class (TScrollBox)
  private
+   pdfCanvas: TPanel;
    FPagecount: integer;
    FPagenum: Integer;
-   FRotation: integer;
+   FRotation: Single;
    FZoom: integer;
-   pdfCanvas: TPanel;
    pdfContext: fz_context;
    pdfDoc: fz_document;
    pdfPage: fz_page;
@@ -26,8 +26,9 @@ type
    pdfPixmap: fz_pixmap;
    fselboxes: array[0..99] of fz_rect;
    fselcount: Integer;
+   function GetFormat: string;
    procedure SetPagenum ( AValue: Integer ) ;
-   procedure SetRotation ( AValue: integer ) ;
+   procedure SetRotation ( AValue: Single ) ;
    procedure SetZoom ( AValue: integer ) ;
    procedure paintPDF(Sender: TObject);
    procedure Loadpage;
@@ -39,11 +40,13 @@ type
    destructor Destroy; override;
    procedure LoadFromFile(FileName: TFilename);
    procedure LoadFromStream(Stream: TMemoryStream);
+   function DocumentInfo(MetaTag: string): string;
    procedure TestTextFunctions;
    property Zoom: integer read FZoom write SetZoom;
-   property Rotation: integer read FRotation write SetRotation;
+   property Rotation: Single read FRotation write SetRotation;
    property Pagenum: Integer read FPagenum write SetPagenum;
    property Pagecount: integer read FPagecount;
+   property DocFormat: string read GetFormat;
  end;
 
 procedure Register;
@@ -71,7 +74,18 @@ begin
   end;
 end;
 
-procedure TmuPDFView.SetRotation ( AValue: integer ) ;
+function TmuPDFView.GetFormat: string;
+var
+  c: PChar;
+  block: array[0..128] of char;
+begin
+ Result := '';
+ if pdfDoc=nil then Exit;
+ fz_meta(pdfDoc, FZ_META_FORMAT_INFO, @block, 128);
+ Result := PChar(@block);
+end;
+
+procedure TmuPDFView.SetRotation ( AValue: Single ) ;
 begin
   if FRotation = AValue then Exit;
   FRotation := AValue;
@@ -177,6 +191,13 @@ begin
              end;
       end;
 
+  if pdfImage<>nil then
+       begin
+         fz_drop_pixmap(pdfContext, pdfPixmap);
+         pdfImage.Free;
+         pdfImage := nil;
+       end;
+
   fselcount := 0;
 
   pdfPage := fz_load_page(pdfDoc, FPagenum - 1);
@@ -205,13 +226,6 @@ begin
  w := bbox.x1-bbox.x0;
  h := bbox.y1-bbox.y0;
 
-if pdfImage<>nil then
-     begin
-       fz_drop_pixmap(pdfContext, pdfPixmap);
-       pdfImage.Free;
-       pdfImage := nil;
-     end;
-
  intimg := TLazIntfImage.Create(w, h);
  ImgFormatDescription.Init_BPP32_R8G8B8A8_BIO_TTB(w, h);
  intimg.DataDescription := ImgFormatDescription;
@@ -228,6 +242,8 @@ if pdfImage<>nil then
  dev := fz_new_draw_device(pdfContext, pdfPixmap);
  fz_run_page(pdfDoc, pdfPage, dev, @transfm, nil);
  fz_free_device(dev);
+ pdfCanvas.Width := w;
+ pdfCanvas.Height := h;
 
  pdfImage.LoadFromIntfImage(intimg);
  intimg.Free;
@@ -304,6 +320,19 @@ begin
 
 end;
 
+function TmuPDFView.DocumentInfo ( MetaTag: string ) : string;
+var
+  c: PChar;
+  block: array[0..128] of Pointer;
+begin
+ Result := '';
+ if pdfDoc=nil then Exit;
+ c := PChar(MetaTag);
+ block[0] := c;
+ fz_meta(pdfDoc, FZ_META_INFO, @block, 128);
+ Result := PChar(@block);
+end;
+
 procedure TmuPDFView.TestTextFunctions;
 var
   sht: fz_text_sheet;
@@ -329,7 +358,7 @@ begin
   {$ENDIF}
   pdfCanvas.Invalidate;
 
-  selectedtext := fz_copy_selection(pdfContext, pg, bbox);
+  //selectedtext := fz_copy_selection(pdfContext, pg, bbox);
   // now do something with selectedtext
 end;
 
