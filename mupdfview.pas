@@ -5,7 +5,7 @@ unit muPDFView;
 interface
 
 uses
- Classes, SysUtils, Forms, Controls, ExtCtrls, libmupdf,
+ Classes, SysUtils, ctypes, Forms, Controls, ExtCtrls, libmupdf,
  Graphics, IntfGraphics, GraphType;
 
 type
@@ -75,6 +75,10 @@ procedure TmuPDFView.SetRotation ( AValue: integer ) ;
 begin
   if FRotation = AValue then Exit;
   FRotation := AValue;
+  if pdfDoc<>nil then
+    begin
+      Loadpage;
+    end;
 end;
 
 procedure TmuPDFView.SetZoom ( AValue: integer ) ;
@@ -82,9 +86,9 @@ begin
   if FZoom = AValue then Exit;
   FZoom := AValue;
   if pdfDoc<>nil then
-  begin
-    Loadpage;
-  end;
+    begin
+      Loadpage;
+    end;
 end;
 
 procedure TmuPDFView.paintPDF ( Sender: TObject ) ;
@@ -108,8 +112,16 @@ begin
                x := BORDER_WIDTH;
                pdfCanvas.Width := pdfImage.Width + (BORDER_WIDTH * 2);
              end;
-             y := BORDER_WIDTH;
-             pdfCanvas.Height := pdfImage.Height + (BORDER_WIDTH * 2);
+        if ClientHeight>pdfImage.Height then
+            begin
+              y := (ClientHeight - pdfImage.Height) div 2;
+              pdfCanvas.Height := ClientHeight;
+            end
+             else
+             begin
+               y := BORDER_WIDTH;
+               pdfCanvas.Height := pdfImage.Height + (BORDER_WIDTH * 2);
+             end;
 
        pdfCanvas.Canvas.Draw(x, y, pdfImage);
         with pdfCanvas.Canvas.Pen do
@@ -149,8 +161,22 @@ var
   dev: fz_device;
   ImgFormatDescription: TRawImageDescription;
   intimg: TLazIntfImage;
+  w: cint;
+  h: cint;
 begin
   if pdfPage<>nil then fz_free_page(pdfDoc, pdfPage);
+  if pdfCanvas=nil then
+      begin
+        pdfCanvas := TPanel.Create(nil);
+        with pdfCanvas do
+             begin
+               Parent := Self;
+               Width := 0;
+               Height := 0;
+               OnPaint := @paintPDF;
+             end;
+      end;
+
   fselcount := 0;
 
   pdfPage := fz_load_page(pdfDoc, FPagenum - 1);
@@ -159,7 +185,7 @@ begin
   // contains the scale and rotation. Convert zoom percentage to a
   // scaling factor. Without scaling the resolution is 72 dpi.
 
-  fz_rotate(@transfm, rotation);
+  fz_rotate(@transfm, frotation);
   fz_pre_scale(@transfm, FZoom / 100.0, FZoom / 100.0) ;
 
   // Take the page bounds and transform them by the same matrix that
@@ -176,8 +202,8 @@ begin
 
  fz_round_rect(@bbox, @boundbox);
 
- pdfCanvas.Width := bbox.x1;
- pdfCanvas.Height := bbox.y1;
+ w := bbox.x1-bbox.x0;
+ h := bbox.y1-bbox.y0;
 
 if pdfImage<>nil then
      begin
@@ -186,12 +212,12 @@ if pdfImage<>nil then
        pdfImage := nil;
      end;
 
- ImgFormatDescription.Init_BPP32_R8G8B8A8_BIO_TTB(bbox.x1, bbox.y1);
- intimg := TLazIntfImage.Create(bbox.x1, bbox.y1);
+ intimg := TLazIntfImage.Create(w, h);
+ ImgFormatDescription.Init_BPP32_R8G8B8A8_BIO_TTB(w, h);
  intimg.DataDescription := ImgFormatDescription;
  pdfImage := TBitmap.Create;
- pdfImage.Width := bbox.x1;
- pdfImage.Height := bbox.y1;
+ pdfImage.Width := w;
+ pdfImage.Height := h;
 
  pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceRGB')), @bbox, intimg.PixelData);
  fz_clear_pixmap_with_value(pdfContext, pdfPixmap, 255);
@@ -234,14 +260,7 @@ begin
   FPagenum := 0;
   fselcount := 0;
   self.resize;
-  pdfCanvas := TPanel.Create(AOwner);
-  with pdfCanvas do
-       begin
-         Parent := Self;
-         Width := 0;
-         Height := 0;
-         OnPaint := @paintPDF;
-       end;
+  pdfCanvas := nil;
   VertScrollBar.Tracking := true;
   pdfimage := nil;
   pdfContext := nil;
@@ -252,6 +271,7 @@ end;
 destructor TmuPDFView.Destroy;
 begin
   ClearPdfContext;
+  if pdfCanvas<>nil then pdfCanvas.Free;
   inherited Destroy;
 end;
 

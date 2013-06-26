@@ -16,15 +16,17 @@ type
     Button1: TButton;
     Button2: TButton;
     ComboBox1: TComboBox;
+    ComboBox2: TComboBox;
     Label1: TLabel;
     Label2: TLabel;
+    Label3: TLabel;
     muPDFView1: TmuPDFView;
     OpenDialog1: TOpenDialog;
     Panel1: TPanel;
-    Panel2: TPanel;
     SpinEdit1: TSpinEdit;
     procedure Button1Click ( Sender: TObject ) ;
     procedure Button2Click ( Sender: TObject ) ;
+    procedure RotationChange(Sender: TObject);
     procedure ZoomChange ( Sender: TObject ) ;
     procedure PagenumChange ( Sender: TObject ) ;
   private
@@ -55,6 +57,14 @@ end;
 procedure TForm1.Button2Click ( Sender: TObject ) ;
 begin
   muPDFView1.TestTextFunctions;
+end;
+
+procedure TForm1.RotationChange(Sender: TObject);
+var
+  r: Integer;
+begin
+  if TryStrToInt(ComboBox2.Text, r)
+     then muPDFView1.Rotation := r;
 end;
 
 procedure TForm1.ZoomChange ( Sender: TObject ) ;
