@@ -226,14 +226,20 @@ begin
  w := bbox.x1-bbox.x0;
  h := bbox.y1-bbox.y0;
 
- intimg := TLazIntfImage.Create(w, h);
- ImgFormatDescription.Init_BPP32_R8G8B8A8_BIO_TTB(w, h);
- intimg.DataDescription := ImgFormatDescription;
  pdfImage := TBitmap.Create;
  pdfImage.Width := w;
  pdfImage.Height := h;
 
+ intimg := TLazIntfImage.Create(w, h);
+ {$IFDEF MSWINDOWS}
+ ImgFormatDescription.Init_BPP32_B8G8R8_M1_BIO_TTB(w, h);
+ intimg.DataDescription := ImgFormatDescription;
+ pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceBGR')), @bbox, intimg.PixelData);
+ {$ELSE}
+ ImgFormatDescription.Init_BPP32_R8G8B8A8_BIO_TTB(w, h);
+ intimg.DataDescription := ImgFormatDescription;
  pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceRGB')), @bbox, intimg.PixelData);
+ {$ENDIF}
  fz_clear_pixmap_with_value(pdfContext, pdfPixmap, 255);
 
   // Create a draw device with the pixmap as its target.

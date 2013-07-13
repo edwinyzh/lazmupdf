@@ -38,7 +38,7 @@ endif
 CC_CMD = $(QUIET_CC) $(CC) $(CFLAGS) -o $@ -c $<
 CXX_CMD = $(QUIET_CXX) $(CXX) $(CFLAGS) -o $@ -c $<
 AR_CMD = $(QUIET_AR) $(AR) cr $@ $^
-SO_CMD = $(QUIET_LINK) $(CC) -fPIC --shared -Wl,-soname -Wl,`basename $@` $^ $(LIBS) -o $@
+SO_CMD = $(QUIET_LINK) $(CC) $(CFLAGS) --shared -Wl,-soname -Wl,`basename $@` $^ $(LIBS) -o $@
 LINK_CMD = $(QUIET_LINK) $(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 LINK_V8_CMD = $(QUIET_LINK) $(CXX) $(LDFLAGS) -o $@ $^ $(LIBS_V8)
 MKDIR_CMD = $(QUIET_MKDIR) mkdir -p $@
@@ -82,7 +82,7 @@ $(OUT)/%.o : scripts/%.c | $(OUT)
 # --- Fitz, MuPDF, MuXPS and MuCBZ library ---
 
 FITZ_LIB_A := $(OUT)/libfitz.a
-FITZ_LIB_SO := $(OUT)/libfitz.so.1.0
+FITZ_LIB_SO := $(OUT)/$(LIBNAME)
 FITZ_V8_LIB := $(OUT)/libfitzv8.a
 
 FITZ_SRC := $(notdir $(wildcard fitz/*.c draw/*.c))
@@ -240,7 +240,7 @@ all: all-nojs $(JSTARGETS)
 
 all-nojs: $(THIRD_LIBS) $(FITZ_LIB_A) $(FITZ_LIB_SO) $(MUVIEW) $(MUDRAW) $(MUTOOL)
 
-so: $(THIRD_LIBS) $(FITZ_LIB_SO)
+shared: $(THIRD_LIBS) $(FITZ_LIB_SO)
 
 third: $(THIRD_LIBS)
 

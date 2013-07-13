@@ -1,8 +1,8 @@
-Instructions for compiling libfitz.so.1.0 dynamic library
+Instructions for compiling libfitz.so.1.0 dynamic library on Linux and libfitz.dll on Windows (tested using MingW32 on Windows Vista)
 
 Makefile
 Makerules
 
 Replace the files Makefile and Makerules in the mupdf-1.2-source base directory by the files in this directory. 
 
-To make only the dynamic library enter 'make so' 
+To make only the shared library enter 'make shared' 

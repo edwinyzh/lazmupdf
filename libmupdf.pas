@@ -28,7 +28,7 @@ uses
 
 const
 {$IF Defined(MSWINDOWS)}
-  muLibName = 'libmupdf.dll';
+  muLibName = 'libfitz.dll';
 {$ELSEIF Defined(DARWIN)}
   muLibName = 'libmupdf.dylib';
   {$LINKLIB mylib}
