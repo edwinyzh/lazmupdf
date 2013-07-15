@@ -22,7 +22,7 @@
     </CompilerOptions>
     <Description Value="Provides bindings for working with PDF files using libfitz and a simple viewer component for displaying PDF files"/>
     <License Value="GPL"/>
-    <Version Major="1"/>
+    <Version Major="1" Minor="1"/>
     <Files Count="2">
       <Item1>
         <Filename Value="mupdfview.pas"/>

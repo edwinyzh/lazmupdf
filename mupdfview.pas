@@ -1,3 +1,22 @@
+{
+  TmuPDFView is a PDF viewer component for Lazarus
+
+  Copyright (C) 2013 Malcolm Poole <mgpoole@users.sourceforge.net>
+
+  This component is free software; you can redistribute it and/or modify it
+  under the terms of the GNU Library General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or (at your
+  option) any later version.
+
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE. See the GNU Library General Public License
+  for more details.
+
+  You should have received a copy of the GNU Library General Public License
+  along with this library; if not, write to the Free Software Foundation,
+  Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+}
 unit muPDFView;
 
 {$mode objfpc}{$H+}
@@ -5,7 +24,7 @@ unit muPDFView;
 interface
 
 uses
- Classes, SysUtils, ctypes, Forms, Controls, ExtCtrls, libmupdf,
+ Classes, SysUtils, LResources, ctypes, Forms, Controls, ExtCtrls, libmupdf,
  Graphics, IntfGraphics, GraphType;
 
 type
@@ -38,6 +57,7 @@ type
  public
    constructor Create ( AOwner: TComponent ) ; override;
    destructor Destroy; override;
+   procedure Paint; override;
    procedure LoadFromFile(FileName: TFilename);
    procedure LoadFromStream(Stream: TMemoryStream);
    function DocumentInfo(MetaTag: string): string;
@@ -297,6 +317,25 @@ begin
   inherited Destroy;
 end;
 
+procedure TmuPDFView.Paint;
+var
+  bmp: TBitmap;
+begin
+  inherited Paint;
+  if csDesigning in ComponentState then
+      begin
+        Canvas.Brush.Color := clWhite;
+        Canvas.Rectangle(ClientRect);
+        bmp := TBitmap.Create;
+        try
+          bmp.LoadFromLazarusResource('TmuPDFView');
+          Canvas.Draw((Width-24) div 2, (Height-24) div 2, bmp);
+        finally
+          bmp.Free;
+        end;
+      end;
+end;
+
 procedure TmuPDFView.LoadFromFile ( FileName: TFilename ) ;
 begin
   ClearPdfContext;
@@ -368,6 +407,10 @@ begin
   // now do something with selectedtext
 end;
 
+initialization
+{$I mupdfview.lrs}
+
 end.
+
 
 
