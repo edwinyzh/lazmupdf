@@ -232,7 +232,7 @@ begin
 
  intimg := TLazIntfImage.Create(w, h);
  {$IFDEF MSWINDOWS}
- ImgFormatDescription.Init_BPP32_B8G8R8_M1_BIO_TTB(w, h);
+ ImgFormatDescription.Init_BPP32_B8G8R8_BIO_TTB(w, h);
  intimg.DataDescription := ImgFormatDescription;
  pdfPixmap := fz_new_pixmap_with_bbox_and_data(pdfContext, fz_find_device_colorspace(pdfContext, PChar('DeviceBGR')), @bbox, intimg.PixelData);
  {$ELSE}
