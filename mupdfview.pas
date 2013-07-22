@@ -43,6 +43,7 @@ type
    pdfPage: fz_page;
    pdfImage: TBitmap;
    pdfPixmap: fz_pixmap;
+   fMemoryStream: TMemoryStream;
    fselboxes: array[0..99] of fz_rect;
    fselcount: Integer;
    function GetFormat: string;
@@ -86,7 +87,7 @@ end;
 
 procedure TmuPDFView.SetPagenum ( AValue: Integer ) ;
 begin
- if (FPagenum = AValue) or (FPagenum>FPagecount) or (FPagenum<1) then Exit;
+ if (FPagenum = AValue) or (AValue>FPagecount) or (AValue<1) then Exit;
  FPagenum := AValue;
   if pdfDoc<>nil then
   begin
@@ -285,6 +286,7 @@ begin
  if pdfPage<>nil then begin fz_free_page(pdfDoc, pdfPage); pdfPage := nil; end;
  if pdfDoc<>nil then begin fz_close_document(pdfDoc); pdfDoc := nil; end;
  if pdfContext<>nil then begin fz_free_context(pdfContext); pdfContext := nil; end;
+ if fMemoryStream<>nil then begin fMemoryStream.Free; fMemoryStream := nil; end;
  fselcount := 0;
 end;
 
@@ -308,6 +310,7 @@ begin
   pdfContext := nil;
   pdfDoc := nil;
   pdfPage := nil;
+  fMemoryStream := nil;
 end;
 
 destructor TmuPDFView.Destroy;
@@ -360,8 +363,42 @@ begin
 
 end;
 
+{
+     TmuPDFView.LoadFromStream
+     The Stream parameter must not be destroyed by the application.
+     TmuPDFView will Free it when the PDFContext is destroyed
+}
 procedure TmuPDFView.LoadFromStream ( Stream: TMemoryStream ) ;
+var
+  s: fz_stream;
+  f: PChar;
 begin
+ ClearPdfContext;
+
+ fMemoryStream := Stream;
+
+ // Create a context to hold the exception stack and various caches.
+
+ pdfContext := fz_new_context(nil, nil, FZ_STORE_UNLIMITED);
+
+ // attach a libfitz stream to Stream
+
+ s := fz_open_memory(pdfContext, fMemoryStream.Memory, fMemoryStream.Size);
+
+ // Open the PDF document.
+ f := 'application/pdf';
+
+ pdfDoc := fz_open_document_with_stream(pdfContext, f, s);
+
+ // Retrieve the number of pages.
+
+ FPagecount := fz_count_pages(pdfDoc);
+
+ // Load the page we want. Page numbering starts from zero.
+
+ FPagenum := 1;
+
+ Loadpage;
 
 end;
 
