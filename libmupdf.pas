@@ -513,7 +513,7 @@ const
       magic: a string used to detect document type; either a file name or mime-type.
 }
 
-function fz_open_document_with_stream(ctx: fz_context; const magic: PChar; astream: fz_stream): fz_document; cdecl; external muLibName name 'fz_open_document_with_stream';
+      function fz_open_document_with_stream(ctx: fz_context; const magic: PChar; astream: fz_stream): fz_document; cdecl; external muLibName name 'fz_open_document_with_stream';
 
 
 {
@@ -873,6 +873,53 @@ const
 
 	}
 	FZ_META_INFO = 4;
+
+  {
+      In calls to fz_write, the following options structure can be used
+      to control aspects of the writing process. This structure may grow
+      in future, and should be zero-filled to allow forwards compatiblity.
+  }
+
+  type
+     fz_write_options = record
+       do_ascii: cint;    //    If non-zero then attempt (where possible) to
+                          //    make the output ascii.
+       do_expand: cint;   // Bitflags; each non zero bit indicates an aspect
+                          // of the file that should be 'expanded' on writing.
+       do_garbage: cint;  //    If non-zero then attempt (where possible) to
+                          //    garbage collect the file before writing.
+       do_linear: cint;   //    If non-zero then write linearised.
+       end;
+     pfz_write_options = ^fz_write_options;
+
+  {    An enumeration of bitflags to use in the above 'do_expand' field of
+      fz_write_options.
+
+  enum
+  {
+      fz_expand_images = 1,
+      fz_expand_fonts = 2,
+      fz_expand_all = -1
+  };            }
+
+  {
+      fz_write: Write a document out.
+
+      (In development - Subject to change in future versions)
+
+      Save a copy of the current document in its original format.
+      Internally the document may change.
+
+      doc: The document to save.
+
+      filename: The filename to save to.
+
+      opts: NULL, or a pointer to an options structure.
+
+      May throw exceptions.
+  }
+  procedure fz_write_document(doc: fz_document; filename: PChar; opts: pfz_write_options); cdecl; external muLibName name 'fz_write_document';
+
 
 
 implementation

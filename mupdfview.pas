@@ -60,6 +60,7 @@ type
    destructor Destroy; override;
    procedure Paint; override;
    procedure LoadFromFile(FileName: TFilename);
+   procedure SaveToFile(FileName: TFilename);
    procedure LoadFromStream(Stream: TMemoryStream);
    function DocumentInfo(MetaTag: string): string;
    procedure TestTextFunctions;
@@ -355,12 +356,19 @@ begin
 
   FPagecount := fz_count_pages(pdfDoc);
 
-  // Load the page we want. Page numbering starts from zero.
+  // Load the first page
 
   FPagenum := 1;
 
   Loadpage;
 
+end;
+
+procedure TmuPDFView.SaveToFile(FileName: TFilename);
+begin
+ if fMemoryStream<> nil then
+     fMemoryStream.SaveToFile(FileName)
+ else fz_write_document(pdfDoc, PChar(FileName), nil); // NOTE: this did not work correctly when tested
 end;
 
 {
@@ -394,7 +402,7 @@ begin
 
  FPagecount := fz_count_pages(pdfDoc);
 
- // Load the page we want. Page numbering starts from zero.
+ // Load first page
 
  FPagenum := 1;
 
