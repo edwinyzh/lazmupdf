@@ -1,0 +1,151 @@
+object Form1: TForm1
+  Left = 172
+  Height = 618
+  Top = 127
+  Width = 771
+  Caption = 'PDF Viewer'
+  ClientHeight = 618
+  ClientWidth = 771
+  LCLVersion = '1.0.1.3'
+  object muPDFView1: TmuPDFView
+    Left = 130
+    Height = 598
+    Top = 10
+    Width = 631
+    HorzScrollBar.Page = 627
+    VertScrollBar.Page = 594
+    VertScrollBar.Tracking = True
+    Align = alClient
+    BorderSpacing.Around = 10
+    TabOrder = 0
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 618
+    Top = 0
+    Width = 120
+    Align = alLeft
+    ClientHeight = 618
+    ClientWidth = 120
+    TabOrder = 1
+    object Button1: TButton
+      Left = 16
+      Height = 25
+      Top = 16
+      Width = 75
+      Caption = 'Load PDF'
+      OnClick = Button1Click
+      TabOrder = 0
+    end
+    object SpinEdit1: TSpinEdit
+      Left = 16
+      Height = 23
+      Top = 82
+      Width = 75
+      MinValue = 1
+      OnChange = PagenumChange
+      TabOrder = 1
+      Value = 1
+    end
+    object ComboBox1: TComboBox
+      Left = 14
+      Height = 25
+      Top = 144
+      Width = 90
+      ItemHeight = 0
+      ItemIndex = 2
+      Items.Strings = (
+        '50'
+        '75'
+        '100'
+        '150'
+        '200'
+      )
+      OnChange = ZoomChange
+      TabOrder = 2
+      Text = '100'
+    end
+    object Label1: TLabel
+      Left = 14
+      Height = 16
+      Top = 64
+      Width = 32
+      Caption = 'Page'
+      ParentColor = False
+    end
+    object Label2: TLabel
+      Left = 16
+      Height = 16
+      Top = 125
+      Width = 40
+      Caption = 'Zoom'
+      ParentColor = False
+    end
+    object Button2: TButton
+      Left = 23
+      Height = 25
+      Top = 416
+      Width = 75
+      Caption = 'Highlight'
+      OnClick = Button2Click
+      TabOrder = 3
+    end
+    object ComboBox2: TComboBox
+      Left = 14
+      Height = 25
+      Top = 211
+      Width = 90
+      ItemHeight = 0
+      ItemIndex = 0
+      Items.Strings = (
+        '0'
+        '90'
+        '180'
+        '270'
+      )
+      OnChange = RotationChange
+      TabOrder = 4
+      Text = '0'
+    end
+    object Label3: TLabel
+      Left = 14
+      Height = 16
+      Top = 192
+      Width = 53
+      Caption = 'Rotation'
+      ParentColor = False
+    end
+    object Button3: TButton
+      Left = 18
+      Height = 25
+      Top = 304
+      Width = 80
+      Caption = 'Show'
+      OnClick = ShowMetaTag
+      TabOrder = 5
+    end
+    object MetaTagEdit: TEdit
+      Left = 18
+      Height = 23
+      Top = 277
+      Width = 82
+      TabOrder = 6
+      Text = 'Author'
+    end
+    object Button4: TButton
+      Left = 23
+      Height = 25
+      Top = 362
+      Width = 75
+      Caption = 'Format'
+      OnClick = ShowFormat
+      TabOrder = 7
+    end
+  end
+  object OpenDialog1: TOpenDialog
+    DefaultExt = '.pdf'
+    Filter = 'PDF files|*.pdf|All files|*'
+    left = 104
+    top = 16
+  end
+end

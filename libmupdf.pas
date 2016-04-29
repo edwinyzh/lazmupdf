@@ -3,6 +3,10 @@
 // MuPDF lib header port to FPC
 // (c) 2013 by Blestan Tabakov
 //
+// modified by Malcolm Poole
+// to work with muPDF 1.2
+// and link statically on Linux
+//
 (********************************)
 unit libmupdf;
 
@@ -19,33 +23,40 @@ unit libmupdf;
 interface
 
 uses
-  Classes, SysUtils,ctypes;
+  Classes, SysUtils, ctypes;
 
 
 const
 {$IF Defined(MSWINDOWS)}
-  muLibName = 'libmupdf.dll';
+  muLibName = 'libfitz.dll';
 {$ELSEIF Defined(DARWIN)}
   muLibName = 'libmupdf.dylib';
   {$LINKLIB mylib}
 {$ELSEIF Defined(UNIX)}
-  muLibName = 'libmupdf.so';
+  muLibName = 'fitz';
+  {uncomment the following lines to link statically instead of to a shared library}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libfitz.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libfreetype.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libopenjpeg.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libjbig2dec.a}
+  //{$LINKLIB /path-to/mupdf-1.2-source/build/debug/libjpeg.a}
 {$IFEND}
 
 type
 
-    pfz_bbox = ^ fz_bbox;
-    fz_bbox = record
-               x0,y0,x1,y1: cint
+    pfz_irect = ^fz_irect;
+    fz_irect = record
+               x0,y0,x1,y1: cint;
               end;
 
-    pfz_rectangle=^fz_rectangle;
-    fz_rectangle= record
-                   x0,y0,x1,y1: cfloat
-                  end;
+    pfz_rect = ^fz_rect;
+    fz_rect = record
+                   x0,y0,x1,y1: cfloat;
+              end;
 
+    pfz_matrix = ^fz_matrix;
     fz_matrix = record
-                 a,b,c,d,e,f: cfloat
+                 a,b,c,d,e,f: cfloat;
                 end;
 
 
@@ -53,9 +64,18 @@ type
 
 
  fz_context = pointer;
+ pfz_context = ^fz_context;
+
  fz_document = pointer;
- fz_page= pointer;
+ pfz_document = ^fz_document;
+
+ fz_page = pointer;
+ pfz_page = ^fz_page;
+
  fz_device = pointer;
+
+ fz_stream = pointer;
+ pfz_stream = ^fz_stream;
 
 {
     Pixmaps represent a set of pixels for a 2 dimensional region of a
@@ -189,10 +209,10 @@ const
 
 // Fitz COLORSPACE
 
-{    fz_find_device_colorspace: Find a standard colorspace based upon it's name. }
+{    fz_find_device_colorspace: Find a standard colorspace based upon its name. }
 
      function fz_find_device_colorspace(ctx:fz_context; name: pchar):fz_colorspace;cdecl;external muLibName name 'fz_find_device_colorspace';
-{
+
 {    fz_device_gray: Abstract colorspace representing device specific gray.}
 
      function  fz_device_gray:fz_colorspace;cdecl;external muLibName name 'fz_device_gray';
@@ -211,7 +231,7 @@ const
 
      function  fz_device_cmyk:fz_colorspace;cdecl;external muLibName name 'fz_device_cmyk';
 
-}
+
 
 //   Fitz Pixmap
 
@@ -220,7 +240,7 @@ const
       Returns an exact bounding box for the supplied pixmap.
 }
 
-     function fz_pixmap_bbox(ctx:fz_context; pix:fz_pixmap):fz_bbox;cdecl;external muLibName name 'fz_pixmap_bbox';
+     function fz_pixmap_bbox(ctx:fz_context; pix:fz_pixmap):fz_irect;cdecl;external muLibName name 'fz_pixmap_bbox';
 
 {     fz_pixmap_width: Return the width of the pixmap in pixels. }
 
@@ -260,7 +280,7 @@ const
      Returns a pointer to the new pixmap. Throws exception on failure to allocate.
 }
 
-     function fz_new_pixmap_with_bbox(ctx: fz_context; cs: fz_colorspace; bbox: fz_bbox):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox';
+     function fz_new_pixmap_with_bbox(ctx: fz_context; cs: fz_colorspace; const bbox: pfz_irect):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox';
 
 {
          fz_new_pixmap_with_data: Create a new pixmap, with it's origin at
@@ -301,7 +321,7 @@ const
          allocate.
 }
 
-     function fz_new_pixmap_with_bbox_and_data(ctx: fz_context; cs: fz_colorspace; bbox: fz_bbox; samples: pointer):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox_and_data';
+     function fz_new_pixmap_with_bbox_and_data(ctx: fz_context; cs: fz_colorspace; bbox: pfz_irect; samples: pointer):fz_pixmap;cdecl;external muLibName name 'fz_new_pixmap_with_bbox_and_data';
 
 
 {
@@ -363,6 +383,22 @@ const
      procedure fz_clear_pixmap_with_value(ctx:fz_context; pix: fz_pixmap; value: cint);cdecl;external muLibName name 'fz_clear_pixmap_with_value';
 
 {
+        fz_clear_pixmap_rect_with_value: Clears a subrect of a pixmap with the given value.
+
+	pix: The pixmap to clear.
+
+	value: Values in the range 0 to 255 are valid. Each component
+	sample for each pixel in the pixmap will be set to this value,
+	while alpha will always be set to 255 (non-transparent).
+
+	r: the rectangle.
+
+	Does not throw exceptions.
+}
+
+      procedure fz_clear_pixmap_rect_with_value(ctx:fz_context; pix: fz_pixmap; value: cint; const r : pfz_irect );cdecl;external muLibName name 'fz_clear_pixmap_rect_with_value';
+
+{
          fz_clear_pixmap: Sets all components (including alpha) of
          all pixels in a pixmap to 0.
 
@@ -371,6 +407,25 @@ const
          Does not throw exceptions.
 }
      procedure fz_clear_pixmap(ctx:fz_context; pix:fz_pixmap);cdecl;external muLibName name 'fz_clear_pixmap';
+
+{
+ 	fz_invert_pixmap: Invert all the pixels in a pixmap. All components
+	of all pixels are inverted (except alpha, which is unchanged).
+
+	Does not throw exceptions.
+}
+
+      procedure fz_invert_pixmap(ctx:fz_context; pix:fz_pixmap);cdecl;external muLibName name 'fz_invert_pixmap';
+
+{
+	fz_invert_pixmap_rect: Invert all the pixels in a given rectangle of a
+	pixmap. All components of all pixels in the rectangle are inverted
+	(except alpha, which is unchanged).
+
+	Does not throw exceptions.
+}
+
+      procedure fz_invert_pixmap_rect(image: fz_pixmap; const rect: pfz_irect);cdecl;external muLibName name 'fz_invert_pixmap_rect';
 
 
 // Fitz DEVICE
@@ -402,7 +457,7 @@ const
          The returned bounding box will be the union of all bounding
          boxes of all objects on a page.
      }
-         function  fz_new_bbox_device(ctx: fz_context; bboxp: pfz_bbox):fz_device;cdecl;external muLibName name 'fz_new_bbox_device';
+         function  fz_new_bbox_device(ctx: fz_context; bboxp: pfz_irect):fz_device;cdecl;external muLibName name 'fz_new_bbox_device';
 
      {
          fz_new_draw_device: Create a device to draw on a pixmap.
@@ -429,7 +484,7 @@ const
          draw device.
      }
 
-     function fz_new_draw_device_with_bbox(ctx: fz_context; dest: fz_pixmap; clip: fz_bbox):fz_device;cdecl;external muLibName name 'fz_new_draw_device_with_bbox';
+     function fz_new_draw_device_with_bbox(ctx: fz_context; dest: fz_pixmap; clip: fz_irect):fz_device;cdecl;external muLibName name 'fz_new_draw_device_with_bbox';
 
 // Fitz DOCUMENT
 
@@ -448,6 +503,18 @@ const
 }
 
       function fz_open_document(ctx: fz_context; const filename: PChar): fz_document;cdecl;external muLibName name 'fz_open_document';
+
+{
+      fz_open_document_with_stream: Open a PDF, XPS or CBZ document.
+
+      Open a document using the specified stream object rather than
+      opening a file on disk.
+
+      magic: a string used to detect document type; either a file name or mime-type.
+}
+
+      function fz_open_document_with_stream(ctx: fz_context; const magic: PChar; astream: fz_stream): fz_document; cdecl; external muLibName name 'fz_open_document_with_stream';
+
 
 {
       fz_close_document: Close and free an open document.
@@ -512,10 +579,6 @@ const
 }
     procedure fz_free_page(doc: fz_document; page: fz_page);cdecl;external muLibName name 'fz_free_page';
 
-{   fz_bound_page: Determine the size of a page at 72 dpi. }
-
-    function fz_bound_page(doc: fz_document; page: fz_page):fz_rectangle;cdecl;external muLibName name 'fz_bound_page';
-
 
 {
     fz_run_page: Run a page through a device.
@@ -537,7 +600,7 @@ const
     rendering.
 }
 
-    procedure fz_run_page(doc:fz_document; page: fz_page; dev: fz_device; transform: fz_matrix; cookie: fz_cookie);cdecl;external muLibName name 'fz_run_page';
+    procedure fz_run_page(doc:fz_document; page: fz_page; dev: fz_device; transform: pfz_matrix; cookie: fz_cookie);cdecl;external muLibName name 'fz_run_page';
 
 
 
@@ -559,7 +622,303 @@ const
 	Does not throw exceptions.
 }
 
-function fz_transform_rect(var rect :  fz_rectangle; const transform: fz_matrix): pfz_rectangle;cdecl;external muLibName name 'fz_transform_rect';
+function fz_transform_rect(arect:  pfz_rect; matrix: pfz_matrix): pfz_rect; cdecl;external muLibName name 'fz_transform_rect';
+
+
+{
+        fz_rotate: Create a rotation matrix.
+
+        The returned matrix is of the form
+        [ cos(deg) sin(deg) -sin(deg) cos(deg) 0 0 ].
+
+        m: Pointer to place to store matrix
+
+        degrees: Degrees of counter clockwise rotation. Values less
+        than zero and greater than 360 are handled as expected.
+
+        Returns m.
+
+        Does not throw exceptions.
+}
+
+function fz_rotate(m: pfz_matrix; degrees: cfloat): pfz_matrix; cdecl;external muLibName name 'fz_rotate';
+
+
+{
+        fz_pre_scale: Scale a matrix by premultiplication.
+
+        m: Pointer to the matrix to scale
+
+        sx, sy: Scaling factors along the X- and Y-axes. A scaling
+        factor of 1.0 will not cause any scaling along the relevant
+        axis.
+
+        Returns m (updated).
+
+        Does not throw exceptions.
+}
+
+function fz_pre_scale(m: pfz_matrix; sx, sy: cfloat): pfz_matrix;  cdecl;external muLibName name 'fz_pre_scale';
+
+
+{
+        fz_bound_page: Determine the size of a page at 72 dpi.
+
+        Does not throw exceptions.
+}
+
+function fz_bound_page(d: fz_document; p: fz_page; arect: pfz_rect): pfz_rect; cdecl; external muLibName name 'fz_bound_page';
+
+{
+fz_round_rect: Round rectangle coordinates.
+
+Coordinates in a bounding box are integers, so rounding of the
+rects coordinates takes place. The top left corner is rounded
+upwards and left while the bottom right corner is rounded
+downwards and to the right.
+
+This differs from fz_irect_from_rect, in that fz_irect_from_rect
+slavishly follows the numbers (i.e any slight over/under calculations
+can cause whole extra pixels to be added). fz_round_rect
+allows for a small amount of rounding error when calculating
+the bbox.
+
+Does not throw exceptions.
+}
+
+function fz_round_rect(bbox: pfz_irect; const arect: pfz_rect): pfz_irect;  cdecl; external muLibName name 'fz_round_rect';
+
+{
+fz_write_png: Save a pixmap as a png
+
+filename: The filename to save as (including extension).
+}
+
+procedure fz_write_png(ctx: fz_context; pixmap: fz_pixmap; fn: PChar; savealpha: cint);   cdecl; external muLibName name 'fz_write_png';
+
+{
+        fz_open_memory: Open a block of memory as a stream.
+
+	data: Pointer to start of data block. Ownership of the data block is
+	NOT passed in.
+
+	len: Number of bytes in data block.
+
+	Returns pointer to newly created stream. May throw exceptions on
+	failure to allocate.
+}
+
+function fz_open_memory(ctx: fz_context; data: Pointer; len: cint): fz_stream ;   cdecl; external muLibName name 'fz_open_memory';
+
+{
+        fz_close: Close an open stream.
+
+        Drops a reference for the stream. Once no references remain
+        the stream will be closed, as will any file descriptor the
+        stream is using.
+
+        Does not throw exceptions.
+}
+procedure fz_close(stm: fz_stream); cdecl; external muLibName name 'fz_close';
+
+
+{
+	Text extraction device: Used for searching, format conversion etc.
+
+	(In development - Subject to change in future versions)
+}
+
+
+type
+   fz_text_style = Pointer;
+   fz_text_char = PChar;
+   fz_text_span = Pointer;
+   fz_text_line = Pointer;
+   fz_text_block = Pointer;
+
+   fz_text_sheet = Pointer;
+   fz_text_page = Pointer;
+
+   fz_output    = Pointer;
+
+   {
+   	fz_new_text_device: Create a device to extract the text on a page.
+
+   	Gather and sort the text on a page into spans of uniform style,
+   	arranged into lines and blocks by reading order. The reading order
+   	is determined by various heuristics, so may not be accurate.
+
+   	sheet: The text sheet to which styles should be added. This can
+   	either be a newly created (empty) text sheet, or one containing
+   	styles from a previous text device. The same sheet cannot be used
+   	in multiple threads simultaneously.
+
+   	page: The text page to which content should be added. This will
+   	usually be a newly created (empty) text page, but it can be one
+   	containing data already (for example when merging multiple pages, or
+   	watermarking).
+   }
+   function fz_new_text_device(ctx: fz_context; sheet: fz_text_sheet; page: fz_text_page): fz_device; cdecl; external muLibName name 'fz_new_text_device';
+
+   {
+   	fz_new_text_sheet: Create an empty style sheet.
+
+   	The style sheet is filled out by the text device, creating
+   	one style for each unique font, color, size combination that
+   	is used.
+   }
+   function fz_new_text_sheet(ctx: fz_context): fz_text_sheet; cdecl; external muLibName name 'fz_new_text_sheet';
+   procedure fz_free_text_sheet(ctx: fz_context; sheet: fz_text_sheet); cdecl; external muLibName name 'fz_free_text_sheet';
+
+   {
+   	fz_new_text_page: Create an empty text page.
+
+   	The text page is filled out by the text device to contain the blocks,
+   	lines and spans of text on the page.
+   }
+   function fz_new_text_page(ctx: fz_context; const mediabox: pfz_rect): fz_text_page; cdecl; external muLibName name 'fz_new_text_page';
+   procedure fz_free_text_page(ctx: fz_context; page: fz_text_page); cdecl; external muLibName name 'fz_open_memory';
+
+  {
+	fz_search_text_page: Search for occurrence of 'needle' in text page.
+
+	Return the number of hits and store hit bboxes in the passed in array.
+
+	NOTE: This is an experimental interface and subject to change without notice.
+  }
+  function fz_search_text_page(ctx: fz_context; txt: fz_text_page; needle: PChar; hit_bbox: pfz_rect; hit_max: cint): cint; cdecl; external muLibName name 'fz_search_text_page';
+
+  {
+	  fz_highlight_selection: Return a list of rectangles to highlight given a selection rectangle.
+
+	  NOTE: This is an experimental interface and subject to change without notice.
+  }
+  function fz_highlight_selection(ctx: fz_context; page: fz_text_page; arect: fz_rect; hit_bbox: pfz_rect; hit_max: cint): cint; cdecl; external muLibName name 'fz_highlight_selection';
+
+  {
+	  fz_copy_selection: Return a newly allocated UTF-8 string with the text for a given selection rectangle.
+
+	  NOTE: This is an experimental interface and subject to change without notice.
+  }
+  function fz_copy_selection(ctx: fz_context; page: fz_text_page; arect: fz_rect): PChar; cdecl; external muLibName name 'fz_copy_selection';
+
+  {
+  	fz_meta: Perform a meta operation on a document.
+
+	(In development - Subject to change in future versions)
+
+	Meta operations provide a way to perform format specific
+	operations on a document. The meta operation scheme is
+	designed to be extensible so that new features can be
+	transparently added in later versions of the library.
+
+	doc: The document on which to perform the meta operation.
+
+	key: The meta operation to try. If a particular operation
+	is unsupported on a given document, the function will return
+	FZ_META_UNKNOWN_KEY.
+
+	ptr: An operation dependent (possibly NULL) pointer.
+
+	size: An operation dependent integer. Often this will
+	be the size of the block pointed to by ptr, but not always.
+
+	Returns an operation dependent value; FZ_META_UNKNOWN_KEY
+	always means "unknown operation for this document". In general
+	FZ_META_OK should be used to indicate successful operation.
+}
+
+function fz_meta(doc: fz_document; key: cint; ptr: Pointer; size: cint): cint; cdecl; external muLibName name 'fz_meta';
+
+const
+
+	FZ_META_UNKNOWN_KEY = -1;
+	FZ_META_OK = 0;
+
+	{
+		ptr: Pointer to block (uninitialised on entry)
+		size: Size of block (at least 64 bytes)
+		Returns: Document format as a brief text string.
+		All formats should support this.
+	}
+	FZ_META_FORMAT_INFO = 1;
+
+	{
+		ptr: Pointer to block (uninitialised on entry)
+		size: Size of block (at least 64 bytes)
+		Returns: Encryption info as a brief text string.
+	}
+	FZ_META_CRYPT_INFO = 2;
+
+	{
+		ptr: NULL
+		size: Which permission to check
+		Returns: 1 if permitted, 0 otherwise.
+	}
+	FZ_META_HAS_PERMISSION = 3;
+
+	FZ_PERMISSION_PRINT = 0;
+	FZ_PERMISSION_CHANGE = 1;
+	FZ_PERMISSION_COPY = 2;
+	FZ_PERMISSION_NOTES = 3;
+
+	{
+		ptr: Pointer to block. First entry in the block is
+		a pointer to a UTF8 string to lookup. The rest of the
+		block is uninitialised on entry.
+		size: size of the block in bytes.
+		Returns: 0 if not found. 1 if found. The string
+		result is copied into the block (truncated to size
+		and NULL terminated)
+
+	}
+	FZ_META_INFO = 4;
+
+  {
+      In calls to fz_write, the following options structure can be used
+      to control aspects of the writing process. This structure may grow
+      in future, and should be zero-filled to allow forwards compatiblity.
+  }
+
+  type
+     fz_write_options = record
+       do_ascii: cint;    //    If non-zero then attempt (where possible) to
+                          //    make the output ascii.
+       do_expand: cint;   // Bitflags; each non zero bit indicates an aspect
+                          // of the file that should be 'expanded' on writing.
+       do_garbage: cint;  //    If non-zero then attempt (where possible) to
+                          //    garbage collect the file before writing.
+       do_linear: cint;   //    If non-zero then write linearised.
+       end;
+     pfz_write_options = ^fz_write_options;
+
+  {    An enumeration of bitflags to use in the above 'do_expand' field of
+      fz_write_options.
+
+  enum
+  {
+      fz_expand_images = 1,
+      fz_expand_fonts = 2,
+      fz_expand_all = -1
+  };            }
+
+  {
+      fz_write: Write a document out.
+
+      (In development - Subject to change in future versions)
+
+      Save a copy of the current document in its original format.
+      Internally the document may change.
+
+      doc: The document to save.
+
+      filename: The filename to save to.
+
+      opts: NULL, or a pointer to an options structure.
+
+      May throw exceptions.
+  }
+  procedure fz_write_document(doc: fz_document; filename: PChar; opts: pfz_write_options); cdecl; external muLibName name 'fz_write_document';
 
 
 
